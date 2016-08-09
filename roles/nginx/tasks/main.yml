@@ -1,0 +1,65 @@
+---
+- name: Copy nginx.repo configuration
+  become: yes
+  template: src=nginx.repo dest=/etc/yum.repos.d/nginx.repo
+
+- name: install nginx
+  become: yes
+  yum: name=nginx state=latest enablerepo=nginx
+
+- name: Copy nginx configuration
+  become: yes
+  template: src=nginx.conf dest=/etc/nginx/nginx.conf mode=0644
+  notify: restart nginx
+
+- name: Exists sites-available
+  stat: path=/etc/nginx/sites-available
+  register: exists_sites_available_directory
+
+- name: Make sites-available
+  become: yes
+  file: path=/etc/nginx/sites-available state=directory mode=0755
+  when: not exists_sites_available_directory.stat.exists
+
+- name: Exists sites-enabled
+  stat: path=/etc/nginx/sites-enabled
+  register: exists_sites_enabled_directory
+
+- name: Make sites-enabled
+  become: yes
+  file: path=/etc/nginx/sites-enabled state=directory mode=0755
+  when: not exists_sites_enabled_directory.stat.exists
+
+- name: Copy nginx local configuration
+  become: yes
+  template: src=local.conf.j2 dest=/etc/nginx/sites-available/local.conf mode=0644
+  notify: restart nginx
+
+- name: Symlink for nginx local configuration
+  become: yes
+  file: src=/etc/nginx/sites-available/local.conf dest=/etc/nginx/sites-enabled/local.conf state=link
+
+- name: Exists /var/www
+  stat: path=/var/www
+  register: exists_www_directory
+
+- name: Make /var/www directory
+  become: yes
+  file: path=/var/www state=directory mode=0755
+  when: not exists_www_directory.stat.exists
+
+- name: Exists deploy_to directory
+  stat: path=/var/www/{{ deploy_to }}
+  register: exists_deploy_directory
+
+- name: Make deploy_to directory
+  file: path=/var/www/{{ deploy_to }} state=directory owner={{ current_user }} group={{ current_user }} mode=0755
+  when: not exists_deploy_directory.stat.exists
+
+- name: Automatic load when boot
+  become: yes
+  command: systemctl enable nginx.service
+
+- name: start nginx
+  become: yes
+  command: systemctl start nginx.service

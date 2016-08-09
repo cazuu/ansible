@@ -1,0 +1,13 @@
+[web_servers]
+192.168.33.101
+
+[db_servers]
+192.168.33.102
+
+# webservers in all geos
+[webservers:children]
+web_servers
+
+# dbservers in all geos
+[dbservers:children]
+db_servers

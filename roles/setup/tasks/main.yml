@@ -1,0 +1,20 @@
+---
+- name: users exist
+  user: name={{ item.name }} state=present password={{ item.password }} groups={{ item.groups}}
+  with_item: users
+  tags: users
+
+- name: ~/.ssh for users exist
+  file: path="/home/{{ item.name }}/.ssh" state=directory owner={{ item.name }} group={{ item.name }} mode=0700
+  with_item: users
+  tags: users
+
+# You must do the following processing in advance
+# cat ~/.ssh/id_rsa_for_{{ item.name }}.pub > roles/setup/files/authorized_keys_for_{{ item.name }}
+- name: authorized keys is deployed
+  copy: src="authorized_keys_for_{{ item.name }}" dest="/home/{{ item.name }}/.ssh/authorized_keys" owner="{{ item.name }}" group={{ item.name }} mode=0600
+  with_item: users
+  tags: users
+
+- name: sudo configured
+  copy: src="sudoers" dest="/etc/sudoers" owner=root group=root mode=0400

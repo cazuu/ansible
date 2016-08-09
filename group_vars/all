@@ -1,0 +1,16 @@
+---
+# make password with hash. `openssl passwd -1 xxxx`
+users:
+  - { name: test, password: "$1$SX.ni2sP$wZWzBA7kej1yK/MaaHC4D0", groups: "wheel" }
+# common
+current_user: vagrant
+home_path: /home/vagrant
+# nginx
+deploy_to: local
+# pyenv
+pyenv_virtualenv_name: local_env
+pyenv_python_version: 3.5.2
+# rbenv
+rbenv_ruby_version: 2.3.1
+# rvm
+rvm_ruby_version: 2.3.0

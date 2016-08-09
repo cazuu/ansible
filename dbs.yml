@@ -1,0 +1,8 @@
+---
+- name: Build a development environment for db servers
+  hosts: db_servers
+  user: vagrant
+
+  roles:
+    - yum-upgrade
+    - mongodb

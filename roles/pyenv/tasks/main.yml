@@ -1,0 +1,67 @@
+---
+- name: Install development tools for pyenv
+  become: yes
+  yum: name={{ item }} state=latest
+  with_items:
+    - git
+    - sqlite-devel
+
+- name: Install pyenv
+  git: repo=https://github.com/yyuu/pyenv.git
+       dest={{ home_path }}/.pyenv
+       version=master
+
+- name: Add ~/.pyenv to PYENV_ROOT
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line="export PYENV_ROOT=$HOME/.pyenv"
+
+- name: Add ~/.pyenv/bin to PATH
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line="export PATH=$HOME/.pyenv/bin:$PATH"
+
+- name: Eval pyenv init in ~/.bashrc
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line='eval "$(pyenv init -)"'
+
+- name: Install pyenv-virtualenv
+  git: repo=https://github.com/yyuu/pyenv-virtualenv.git
+       dest={{ home_path }}/.pyenv/plugins/pyenv-virtualenv
+       version=master
+
+- name: Eval pyenv-virtualenv init in ~/.bashrc
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line='eval "$(pyenv virtualenv-init -)"'
+
+- name: Check if version is installed python
+  shell: "sudo -iu {{ current_user }} pyenv version | grep {{ pyenv_python_version }}"
+  register: pyenv_check_install
+  changed_when: False
+  ignore_errors: yes
+
+- name: Install python
+  command: "sudo -iu {{ current_user }} pyenv install {{ pyenv_python_version }}"
+  when: pyenv_check_install|failed
+
+- name: Check if version is the default python version
+  shell: "sudo -iu {{ current_user }} pyenv versions | grep '* {{ pyenv_python_version }}'"
+  register: pyenv_check_default
+  changed_when: False
+  ignore_errors: yes
+
+- name: Set default python version
+  command: "sudo -iu {{ current_user }} pyenv global {{ pyenv_python_version }}"
+  when: pyenv_check_default|failed
+
+- name: Check if env is created
+  shell: "sudo -iu {{ current_user }} pyenv versions | grep '{{ pyenv_python_version }}/envs/{{ pyenv_virtualenv_name }}'"
+  register: virtualenv_check_create
+  changed_when: False
+  ignore_errors: yes
+
+- name: Create env
+  command: "sudo -iu {{ current_user }} pyenv virtualenv {{ pyenv_python_version }} {{ pyenv_virtualenv_name }}"
+  when: virtualenv_check_create|failed

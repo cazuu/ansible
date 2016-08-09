@@ -1,0 +1,53 @@
+---
+- name: Install dependencies for rvm
+  yum: name={{ item }} state=latest
+  with_items:
+    - git
+    - curl
+
+- name: Get gpg key
+  shell: gpg2 --keyserver hkp://keys.gnupg.net --recv-keys D39DC0E3
+
+- name: Install rvm
+  shell: creates=/etc/profile.d/rvm.sh curl -sSL https://get.rvm.io | bash -s stable --ruby={{ rvm_ruby_version }} --gems=bundler
+
+- name: Add ~/.rvm/bin to PATH
+  become: yes
+  become_user: "{{ current_user }}"
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line='[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"'
+
+- name: Install dependencies for ruby-build (see. https://github.com/sstephenson/ruby-build/wiki)
+  yum: name={{ item }} state=latest
+  with_items:
+    - gcc
+    - bzip2
+    - ruby-devel
+    - openssl-devel
+    - libyaml-devel
+    - libffi-devel
+    - readline-devel
+    - zlib-devel
+    - gdbm-devel
+    - ncurses-devel
+
+- name: Check if version is installed ruby
+  shell: "sudo -iu {{ current_user }} rvm list | grep {{ rvm_ruby_version }}"
+  register: rvm_check_install
+  changed_when: False
+  ignore_errors: yes
+
+- name: Install ruby
+  command: "sudo -iu {{ current_user }} rvm install {{ rvm_ruby_version }}"
+  when: rvm_check_install|failed
+
+- name: Check if version is the default ruby version
+  shell: "sudo -iu {{ current_user }} which ruby | grep {{ rvm_ruby_version }}"
+  register: rvm_check_default
+  changed_when: False
+  ignore_errors: yes
+
+- name: Set default ruby version
+  command: "sudo -iu {{ current_user }} rvm {{ rvm_ruby_version }} --default"
+  when: rvm_check_default|failed

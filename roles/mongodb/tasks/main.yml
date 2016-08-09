@@ -1,0 +1,20 @@
+---
+- name: Copy MongoDB.repo configuration
+  become: yes
+  template: src=mongodb-org-3.2.repo dest=/etc/yum.repos.d/mongodb-org-3.2.repo
+
+- name: install MongoDB
+  become: yes
+  yum: name=mongodb-org state=latest enablerepo=mongodb-org-3.2
+
+- name: Copy MongoDB configuration
+  become: yes
+  template: src=mongod.conf dest=/etc/mongod.conf
+
+- name: Automatic load with boot
+  become: yes
+  command: systemctl enable mongod.service
+
+- name: start MongoDB
+  become: yes
+  command: systemctl start mongod.service

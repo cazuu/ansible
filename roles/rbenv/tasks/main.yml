@@ -1,0 +1,70 @@
+---
+- name: Install development tools for rbenv
+  become: yes
+  yum: name={{ item }} state=latest
+  with_items:
+    - git
+
+- name: Install rbenv
+  git: repo=https://github.com/sstephenson/rbenv.git
+       dest={{ home_path }}/.rbenv
+       version=master
+
+- name: Add ~/.rbenv/bin to PATH
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line="export PATH=$HOME/.rbenv/bin:$PATH"
+
+- name: Eval rbenv init in ~/.bashrc
+  lineinfile: >
+    dest="{{ home_path }}/.bashrc"
+    line='eval "$(rbenv init -)"'
+
+- name: Install dependencies for ruby-build (see. https://github.com/sstephenson/ruby-build/wiki)
+  become: yes
+  yum: name={{ item }} state=latest
+  with_items:
+    - gcc
+    - bzip2
+    - openssl-devel
+    - libyaml-devel
+    - libffi-devel
+    - readline-devel
+    - zlib-devel
+    - gdbm-devel
+    - ncurses-devel
+
+- name: Install ruby-build as rbenv plugin
+  git: repo=https://github.com/sstephenson/ruby-build.git
+       dest={{ home_path }}/.rbenv/plugins/ruby-build
+       version=master
+
+- name: Check if version is installed ruby
+  shell: "sudo -iu {{ current_user }} rbenv version | grep {{ rbenv_ruby_version }}"
+  register: rbenv_check_install
+  changed_when: False
+  ignore_errors: yes
+
+- name: Install ruby
+  command: "sudo -iu {{ current_user }} rbenv install {{ rbenv_ruby_version }}"
+  when: rbenv_check_install|failed
+
+- name: Check if version is the default ruby version
+  shell: "sudo -iu {{ current_user }} rbenv versions | grep '* {{ rbenv_ruby_version }}'"
+  register: rbenv_check_default
+  changed_when: False
+  ignore_errors: yes
+
+- name: Set default ruby version
+  command: "sudo -iu {{ current_user }} rbenv global {{ rbenv_ruby_version }}"
+  when: rbenv_check_default|failed
+
+- name: Check if installed bundler
+  shell: "sudo -iu {{ current_user }} gem list | grep bundler"
+  register: bundler_check_install
+  changed_when: False
+  ignore_errors: yes
+
+- name: Install default gems
+  shell: "sudo -iu {{ current_user }} gem install bundler"
+  when: bundler_check_install|failed
