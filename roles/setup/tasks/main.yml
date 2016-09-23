@@ -1,20 +1,54 @@
 ---
+- name: Install policycoreutils-python
+  yum: name=policycoreutils-python state=installed
+  become: yes
+
+# SSH
+- name: Change SSH port
+  replace: >-
+    dest='/etc/ssh/sshd_config'
+    regexp='#Port 22'
+    replace='Port {{ ssh_port }}'
+  become: yes
+
+- name: Disallow password authentication
+  replace: >-
+    dest=/etc/ssh/sshd_config
+    regexp='^PasswordAuthentication yes'
+    replace='PasswordAuthentication no'
+  become: yes
+
+- name: Disallow root SSH access
+  replace: >-
+    dest=/etc/ssh/sshd_config
+    regexp="#PermitRootLogin yes"
+    replace="PermitRootLogin no"
+  become: yes
+  notify: restart sshd
+
+# User
 - name: users exist
   user: name={{ item.name }} state=present password={{ item.password }} groups={{ item.groups}}
-  with_item: users
+  with_items: users
+  become: yes
   tags: users
 
 - name: ~/.ssh for users exist
   file: path="/home/{{ item.name }}/.ssh" state=directory owner={{ item.name }} group={{ item.name }} mode=0700
-  with_item: users
+  with_items: users
+  become: yes
   tags: users
 
 # You must do the following processing in advance
 # cat ~/.ssh/id_rsa_for_{{ item.name }}.pub > roles/setup/files/authorized_keys_for_{{ item.name }}
 - name: authorized keys is deployed
   copy: src="authorized_keys_for_{{ item.name }}" dest="/home/{{ item.name }}/.ssh/authorized_keys" owner="{{ item.name }}" group={{ item.name }} mode=0600
-  with_item: users
+  with_items: users
+  become: yes
+  become_user: '{{ item.name }}'
   tags: users
 
+# Allow wheel users to sudo
 - name: sudo configured
   copy: src="sudoers" dest="/etc/sudoers" owner=root group=root mode=0400
+  become: yes

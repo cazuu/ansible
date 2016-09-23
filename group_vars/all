@@ -1,7 +1,8 @@
 ---
 # make password with hash. `openssl passwd -1 xxxx`
 users:
-  - { name: test, password: "$1$SX.ni2sP$wZWzBA7kej1yK/MaaHC4D0", groups: "wheel" }
+  # password is "Password"
+  - { name: admin, password: "$1$QGvF5Rhu$vREtiAlgNqZ97ad3UNszQ/", groups: "wheel" }
 # common
 current_user: vagrant
 home_path: /home/vagrant
@@ -14,3 +15,5 @@ pyenv_python_version: 3.5.2
 rbenv_ruby_version: 2.3.1
 # rvm
 rvm_ruby_version: 2.3.0
+# Setup for CentOS7
+ssh_port: 50022
